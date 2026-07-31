@@ -15,7 +15,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 - [x] Add a MongoDB client to `Ingest.Api`.
 - [x] Implement `GET /ingest?text=...`, storing `{ id, text, createdAt }` in MongoDB.
-- [ ] Add a minimal `docker-compose.yml` with `mongo`, `mongo-express` (basic auth disabled, so it's
+- [x] Add a minimal `docker-compose.yml` with `mongo`, `mongo-express` (basic auth disabled, so it's
       reachable straight from a browser like everything else here), and `ingest-api`.
 - **Verify:** hit `http://localhost:<port>/ingest?text=hello` in a browser, confirm the document
   appears in Mongo via the `mongo-express` UI (or `mongosh`/Compass).

@@ -1,0 +1,6 @@
+services:
+  ingest-api:
+    build:
+      target: debug
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development

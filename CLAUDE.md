@@ -76,5 +76,8 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 - `dotnet run --project src/Ingest.Api` (or `Search.Api`, `RedisIndexer.Worker`,
   `ElasticIndexer.Worker`) — run a single project.
 - `dotnet test` — not yet applicable, no test projects exist.
-- `docker compose up -d` / `docker compose down` — not yet applicable, no `docker-compose.yml` yet.
+- `docker compose up -d --build` — build and start `mongo`, `mongo-express` (http://localhost:8081,
+  no auth), and `ingest-api` (http://localhost:8080). `docker compose down` stops them (add `-v` to
+  also drop the `mongo-data` volume). Only these three services exist so far; the rest
+  (rabbitmq/kafka/redis/elasticsearch and their UIs/workers) land in later Plan.md phases.
 - `kubectl` commands — not yet applicable, Kubernetes phase hasn't started.
