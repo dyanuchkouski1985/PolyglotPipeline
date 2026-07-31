@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Confluent.Kafka;
 using Ingest.Api;
 using MongoDB.Driver;
 using RabbitMQ.Client;
@@ -14,6 +15,11 @@ builder.Services.AddSingleton(new ConnectionFactory
 {
     Uri = new Uri(builder.Configuration["RabbitMq:ConnectionString"]!)
 });
+builder.Services.AddSingleton(_ =>
+    new ProducerBuilder<Null, string>(new ProducerConfig
+    {
+        BootstrapServers = builder.Configuration["Kafka:BootstrapServers"]
+    }).Build());
 
 const string RabbitMqBroker = "rabbitmq";
 const string KafkaBroker = "kafka";
@@ -22,7 +28,7 @@ var app = builder.Build();
 
 app.MapGet("/", () => "Hello World!");
 
-app.MapGet("/ingest", async (string text, string broker, IMongoDatabase mongoDatabase, ConnectionFactory rabbitMqConnectionFactory) =>
+app.MapGet("/ingest", async (string text, string broker, IMongoDatabase mongoDatabase, ConnectionFactory rabbitMqConnectionFactory, IProducer<Null, string> kafkaProducer) =>
 {
     if (broker is not (RabbitMqBroker or KafkaBroker))
     {
@@ -38,15 +44,15 @@ app.MapGet("/ingest", async (string text, string broker, IMongoDatabase mongoDat
 
     await mongoDatabase.GetCollection<TextDocument>(TextDocument.CollectionName).InsertOneAsync(document);
 
+    var message = new TextSubmitted
+    {
+        Id = document.Id,
+        Text = document.Text,
+        CreatedAt = document.CreatedAt
+    };
+
     if (broker == RabbitMqBroker)
     {
-        var message = new TextSubmitted
-        {
-            Id = document.Id,
-            Text = document.Text,
-            CreatedAt = document.CreatedAt
-        };
-
         await using var connection = await rabbitMqConnectionFactory.CreateConnectionAsync();
         await using var channel = await connection.CreateChannelAsync();
         await channel.ExchangeDeclareAsync(TextSubmitted.RabbitMqExchangeName, ExchangeType.Fanout, durable: true);
@@ -57,6 +63,12 @@ app.MapGet("/ingest", async (string text, string broker, IMongoDatabase mongoDat
             mandatory: false,
             basicProperties: new BasicProperties { ContentType = "application/json", DeliveryMode = DeliveryModes.Persistent },
             body: JsonSerializer.SerializeToUtf8Bytes(message));
+    }
+    else
+    {
+        await kafkaProducer.ProduceAsync(
+            TextSubmitted.KafkaTopicName,
+            new Message<Null, string> { Value = JsonSerializer.Serialize(message) });
     }
 
     return Results.Ok(document);
