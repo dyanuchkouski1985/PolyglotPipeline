@@ -81,8 +81,11 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 - `dotnet test` — not yet applicable, no test projects exist.
 - `docker compose up -d --build` — build and start `mongo`, `mongo-express` (http://localhost:8081,
   no auth), `rabbitmq` (AMQP on 5672, management UI at http://localhost:15672, no auth needed —
-  guest/guest), `kafka` (KRaft, broker on 9092), `kafka-ui` (http://localhost:8082, no auth), and
-  `ingest-api` (http://localhost:8080, publishes to whichever broker `?broker=` selects). Phase 2 is
-  now fully wired end-to-end. `docker compose down` stops them (add `-v` to also drop the
-  `mongo-data` volume). `redis`/`elasticsearch` and their UIs/workers land in later Plan.md phases.
+  guest/guest), `kafka` (KRaft, broker on 9092), `kafka-ui` (http://localhost:8082, no auth), `redis`
+  (6379), `redis-indexer` (consumes `TextSubmitted` from both brokers, writes to Redis — no
+  container port of its own), and `ingest-api` (http://localhost:8080, publishes to whichever broker
+  `?broker=` selects). Phase 2 is fully wired end-to-end; Phase 3 (Redis) is functionally done too,
+  minus a browser UI for Redis (`redis-commander`, next Plan.md task). `docker compose down` stops
+  them (add `-v` to also drop the `mongo-data`/`redis-data` volumes). `elasticsearch` and its
+  UI/worker land in a later Plan.md phase.
 - `kubectl` commands — not yet applicable, Kubernetes phase hasn't started.

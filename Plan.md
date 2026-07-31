@@ -43,7 +43,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
       binding a queue to the RabbitMQ exchange, one subscribed to the Kafka topic.
 - [x] Both listeners call the same handler on message received, which writes the text to Redis —
       the handler must not care which broker delivered the message.
-- [ ] Add `redis` and `redis-indexer` to `docker-compose.yml`.
+- [x] Add `redis` and `redis-indexer` to `docker-compose.yml`.
 - [ ] Add `redis-commander` (basic auth disabled) to `docker-compose.yml` for browser-based key
       inspection — Redis has no built-in UI.
 - **Verify:** hit `/ingest?text=hello&broker=rabbitmq` and separately `broker=kafka`; confirm both

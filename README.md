@@ -12,16 +12,18 @@ phase lands.
 
 ## Current state
 
-Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), and Phase 2 (messaging publish) are done:
-`Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to either RabbitMQ or Kafka,
-selected per-request. `Search.Api`, `RedisIndexer.Worker`, and `ElasticIndexer.Worker` are still
-empty template shells — nothing consumes these messages yet.
+Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), and Phase 2 (messaging publish) are done.
+Phase 3 (Redis consumer) is functionally done too — just missing its browser UI (`redis-commander`,
+next up). `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to either RabbitMQ
+or Kafka, selected per-request; `RedisIndexer.Worker` consumes it from whichever broker delivered it
+and writes it to Redis. `Search.Api` and `ElasticIndexer.Worker` are still empty template shells.
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
   in MongoDB, publishes `TextSubmitted` to the selected broker, and returns the stored document.
+- `src/RedisIndexer.Worker` — two independent listeners (RabbitMQ queue + Kafka topic), both feeding
+  one handler that writes `TextSubmitted` to Redis as a hash (`text:{id}` → `Text`, `CreatedAt`).
 - `src/Search.Api` — default ASP.NET Core minimal API template (`GET /` → "Hello World!").
-- `src/RedisIndexer.Worker` — default Worker Service template (logs a heartbeat once a second).
 - `src/ElasticIndexer.Worker` — default Worker Service template (logs a heartbeat once a second).
 
 ## Prerequisites
@@ -48,16 +50,20 @@ This starts:
 - `rabbitmq` — AMQP at `localhost:5672`; management UI (guest/guest): http://localhost:15672
 - `kafka` — broker at `localhost:9092` (KRaft mode, no ZooKeeper).
 - `kafka-ui` — browser-based Kafka admin UI (no login required): http://localhost:8082
+- `redis` — at `localhost:6379`.
+- `redis-indexer` — consumes from both brokers and writes to Redis; no browser UI of its own yet
+  (that's `redis-commander`, a later Plan.md task) — inspect with `redis-cli` for now:
+  `docker exec -it polyglotpipeline-redis-1 redis-cli HGETALL text:<id>`.
 - `ingest-api` — http://localhost:8080
 
 Hit `http://localhost:8080/ingest?text=hello&broker=rabbitmq` (or `broker=kafka`) in a browser.
 Check `mongo-express` (database `polyglotpipeline`, collection `texts`) to see the Mongo write, the
-RabbitMQ management UI's `text-submitted` exchange to see the published message, and `kafka-ui`'s
-`text-submitted` topic (under cluster `local`) to see it there too — give `kafka-ui` a few seconds
-after ingesting, since its stats refresh on an interval rather than instantly.
+RabbitMQ management UI's `text-submitted` exchange to see the published message, `kafka-ui`'s
+`text-submitted` topic (under cluster `local`, give it a few seconds — its stats refresh on an
+interval) to see it there too, and `redis-cli` (above) to confirm `redis-indexer` wrote it to Redis.
 
 `docker compose down` stops and removes all of this project's containers plus the network (add `-v`
-to also delete the `mongo-data` volume).
+to also delete the `mongo-data`/`redis-data` volumes).
 
 ### Stopping just one container
 
@@ -69,13 +75,13 @@ docker compose rm -s -f mongo-express   # stop (if running) and remove it entire
 ### Inspecting/removing volumes
 
 ```
-docker volume ls --filter name=polyglotpipeline    # this project's volumes (currently just mongo-data)
+docker volume ls --filter name=polyglotpipeline    # this project's volumes (mongo-data, redis-data)
 docker volume inspect polyglotpipeline_mongo-data  # details: mountpoint, size, etc.
 docker volume rm polyglotpipeline_mongo-data        # remove it (containers using it must be down first)
 ```
 
-`mongo-data` persists across `docker compose down`/`up`, so ingested test data (e.g. from
-`?text=hello`) accumulates until you remove the volume.
+`mongo-data`/`redis-data` persist across `docker compose down`/`up`, so ingested test data (e.g.
+from `?text=hello`) accumulates until you remove the volumes.
 
 ## Debugging Ingest.Api in its container (VS Code)
 
@@ -100,7 +106,7 @@ dotnet run --project src/RedisIndexer.Worker
 dotnet run --project src/ElasticIndexer.Worker
 ```
 
-`Ingest.Api` defaults to `mongodb://localhost:27017` (see `appsettings.json`), so a local or
-Dockerized Mongo needs to be reachable at that address if you run it this way instead of via
-Compose. `Search.Api` and the two workers are still just default templates — see Plan.md for what's
-next.
+`Ingest.Api` and `RedisIndexer.Worker` both default to `localhost` for Mongo/RabbitMQ/Kafka/Redis
+(see each project's `appsettings.json`), so those need to be reachable at those addresses if you run
+this way instead of via Compose. `Search.Api` and `ElasticIndexer.Worker` are still just default
+templates — see Plan.md for what's next.

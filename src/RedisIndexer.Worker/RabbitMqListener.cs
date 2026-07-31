@@ -14,8 +14,9 @@ public class RabbitMqListener(
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        await using var connection = await connectionFactory.CreateConnectionAsync(stoppingToken);
-        await using var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        var (connection, channel) = await ConnectWithRetryAsync(stoppingToken);
+        await using var connectionToDispose = connection;
+        await using var channelToDispose = channel;
 
         await channel.ExchangeDeclareAsync(
             TextSubmitted.RabbitMqExchangeName, ExchangeType.Fanout, durable: true, autoDelete: false, cancellationToken: stoppingToken);
@@ -55,6 +56,26 @@ public class RabbitMqListener(
         catch (OperationCanceledException)
         {
             // Expected during graceful shutdown.
+        }
+    }
+
+    private async Task<(IConnection Connection, IChannel Channel)> ConnectWithRetryAsync(CancellationToken stoppingToken)
+    {
+        while (true)
+        {
+            try
+            {
+                var connection = await connectionFactory.CreateConnectionAsync(stoppingToken);
+                var channel = await connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                return (connection, channel);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // Transient (e.g. RabbitMQ isn't ready yet right after `docker compose up`) —
+                // log and retry rather than crashing the host.
+                logger.LogWarning(ex, "RabbitMQ connection failed, retrying in 5s");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+            }
         }
     }
 }

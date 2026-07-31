@@ -55,6 +55,13 @@ services:
     depends_on:
       - kafka
 
+  redis:
+    image: redis:8.10.0
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
   ingest-api:
     build:
       context: .
@@ -72,5 +79,19 @@ services:
       - rabbitmq
       - kafka
 
+  redis-indexer:
+    build:
+      context: .
+      dockerfile: src/RedisIndexer.Worker/Dockerfile
+    environment:
+      RabbitMq__ConnectionString: amqp://guest:guest@rabbitmq:5672
+      Kafka__BootstrapServers: kafka:19092
+      Redis__ConnectionString: redis:6379
+    depends_on:
+      - rabbitmq
+      - kafka
+      - redis
+
 volumes:
   mongo-data:
+  redis-data:
