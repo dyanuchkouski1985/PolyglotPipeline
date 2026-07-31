@@ -1,12 +1,19 @@
 using Shared.Contracts;
+using StackExchange.Redis;
 
 namespace RedisIndexer.Worker;
 
-public class TextSubmittedHandler(ILogger<TextSubmittedHandler> logger)
+public class TextSubmittedHandler(IConnectionMultiplexer redis, ILogger<TextSubmittedHandler> logger)
 {
-    public Task HandleAsync(TextSubmitted message, CancellationToken cancellationToken)
+    public async Task HandleAsync(TextSubmitted message, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Received {Message} {Id}: {Text}", nameof(TextSubmitted), message.Id, message.Text);
-        return Task.CompletedTask;
+        var database = redis.GetDatabase();
+        await database.HashSetAsync(TextSubmitted.RedisKeyPrefix + message.Id,
+        [
+            new HashEntry(nameof(TextSubmitted.Text), message.Text),
+            new HashEntry(nameof(TextSubmitted.CreatedAt), message.CreatedAt.ToString("o"))
+        ]);
+
+        logger.LogInformation("Wrote {Message} {Id} to Redis: {Text}", nameof(TextSubmitted), message.Id, message.Text);
     }
 }

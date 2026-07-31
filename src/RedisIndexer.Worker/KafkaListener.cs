@@ -22,11 +22,21 @@ public class KafkaListener(
             {
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    var result = consumer.Consume(stoppingToken);
-                    var message = JsonSerializer.Deserialize<TextSubmitted>(result.Message.Value);
-                    if (message is not null)
+                    try
                     {
-                        await handler.HandleAsync(message, stoppingToken);
+                        var result = consumer.Consume(stoppingToken);
+                        var message = JsonSerializer.Deserialize<TextSubmitted>(result.Message.Value);
+                        if (message is not null)
+                        {
+                            await handler.HandleAsync(message, stoppingToken);
+                        }
+                    }
+                    catch (ConsumeException ex)
+                    {
+                        // Transient (e.g. the topic doesn't exist yet, on a brand-new broker with
+                        // nothing ever published) — log and retry rather than crashing the host.
+                        logger.LogWarning(ex, "Kafka consume failed, retrying in 5s: {Reason}", ex.Error.Reason);
+                        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
                     }
                 }
             }

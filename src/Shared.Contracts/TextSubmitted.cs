@@ -6,6 +6,8 @@ public record TextSubmitted
 
     public const string KafkaTopicName = "text-submitted";
 
+    public const string RedisKeyPrefix = "text:";
+
     public required string Id { get; init; }
 
     public required string Text { get; init; }

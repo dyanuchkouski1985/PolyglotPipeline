@@ -1,6 +1,7 @@
 using Confluent.Kafka;
 using RabbitMQ.Client;
 using RedisIndexer.Worker;
+using StackExchange.Redis;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -15,6 +16,8 @@ builder.Services.AddSingleton(_ =>
         GroupId = KafkaListener.GroupId,
         AutoOffsetReset = AutoOffsetReset.Earliest
     }).Build());
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(builder.Configuration["Redis:ConnectionString"]!));
 
 builder.Services.AddSingleton<TextSubmittedHandler>();
 builder.Services.AddHostedService<RabbitMqListener>();
