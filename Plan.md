@@ -39,7 +39,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 3 — Redis consumer
 
-- [ ] Scaffold `RedisIndexer.Worker` as a BackgroundService running two independent listeners: one
+- [x] Scaffold `RedisIndexer.Worker` as a BackgroundService running two independent listeners: one
       binding a queue to the RabbitMQ exchange, one subscribed to the Kafka topic.
 - [ ] Both listeners call the same handler on message received, which writes the text to Redis —
       the handler must not care which broker delivered the message.
