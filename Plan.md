@@ -6,10 +6,10 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 0 — Scaffolding
 
-- [ ] Create `PolyglotPipeline.sln` with empty project shells: `Shared.Contracts`, `Ingest.Api`,
+- [x] Create `PolyglotPipeline.sln` with empty project shells: `Shared.Contracts`, `Ingest.Api`,
       `Search.Api`, `RedisIndexer.Worker`, `ElasticIndexer.Worker`.
-- [ ] Add a .NET `.gitignore`.
-- [ ] Add a top-level README describing how to run what exists so far (kept in sync per phase).
+- [x] Add a .NET `.gitignore`.
+- [x] Add a top-level README describing how to run what exists so far (kept in sync per phase).
 
 ## Phase 1 — Ingest.Api + MongoDB
 
@@ -19,29 +19,39 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 - **Verify:** hit `http://localhost:<port>/ingest?text=hello` in a browser, confirm the document
   appears in Mongo (e.g. via `mongosh` or Compass).
 
-## Phase 2 — RabbitMQ publish
+## Phase 2 — Messaging publish (RabbitMQ + Kafka)
 
 - [ ] Define the `TextSubmitted` message (Id, Text, CreatedAt) in `Shared.Contracts`.
+- [ ] Add a `broker` query parameter to `GET /ingest` (`rabbitmq` or `kafka`) that selects which
+      broker this request's message goes to; reject anything else with a plain 400.
 - [ ] Add a RabbitMQ client to `Ingest.Api`; after a successful Mongo write, publish `TextSubmitted`
-      to a fanout/topic exchange.
-- [ ] Add `rabbitmq` to `docker-compose.yml` and wire `ingest-api` to it.
-- **Verify:** hit `/ingest?text=hello`, confirm the message is visible in the RabbitMQ management UI.
+      to a fanout/topic exchange when `broker=rabbitmq`.
+- [ ] Add a Kafka client to `Ingest.Api`; publish `TextSubmitted` to a topic when `broker=kafka`.
+- [ ] Add `rabbitmq` and `kafka` (KRaft mode, no ZooKeeper) to `docker-compose.yml` and wire
+      `ingest-api` to both.
+- **Verify:** hit `/ingest?text=hello&broker=rabbitmq`, confirm the message is visible in the
+  RabbitMQ management UI; hit `/ingest?text=hello&broker=kafka`, confirm the message via a Kafka
+  console consumer.
 
 ## Phase 3 — Redis consumer
 
-- [ ] Scaffold `RedisIndexer.Worker` as a BackgroundService, binding its own queue to the exchange.
-- [ ] On message received, write the text to Redis.
+- [ ] Scaffold `RedisIndexer.Worker` as a BackgroundService running two independent listeners: one
+      binding a queue to the RabbitMQ exchange, one subscribed to the Kafka topic.
+- [ ] Both listeners call the same handler on message received, which writes the text to Redis —
+      the handler must not care which broker delivered the message.
 - [ ] Add `redis` and `redis-indexer` to `docker-compose.yml`.
-- **Verify:** hit `/ingest?text=hello`, confirm the value appears in Redis (e.g. via `redis-cli`).
+- **Verify:** hit `/ingest?text=hello&broker=rabbitmq` and separately `broker=kafka`; confirm both
+  values appear in Redis (e.g. via `redis-cli`).
 
 ## Phase 4 — Elasticsearch consumer
 
-- [ ] Scaffold `ElasticIndexer.Worker` as a BackgroundService, binding its own queue to the same
-      exchange.
-- [ ] On message received, index the document into Elasticsearch.
+- [ ] Scaffold `ElasticIndexer.Worker` as a BackgroundService with the same dual-listener shape as
+      `RedisIndexer.Worker` (its own RabbitMQ queue + Kafka topic/consumer group).
+- [ ] Both listeners call the same handler on message received, which indexes the document into
+      Elasticsearch.
 - [ ] Add `elasticsearch` and `elastic-indexer` to `docker-compose.yml`.
-- **Verify:** hit `/ingest?text=hello`, confirm the document is indexed (e.g. via Elasticsearch's
-  `_search` endpoint).
+- **Verify:** hit `/ingest?text=hello&broker=rabbitmq` and separately `broker=kafka`; confirm the
+  document is indexed for both (e.g. via Elasticsearch's `_search` endpoint).
 
 ## Phase 5 — Search.Api
 
