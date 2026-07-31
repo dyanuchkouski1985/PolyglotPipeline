@@ -13,11 +13,12 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 1 — Ingest.Api + MongoDB
 
-- [ ] Add a MongoDB client to `Ingest.Api`.
-- [ ] Implement `GET /ingest?text=...`, storing `{ id, text, createdAt }` in MongoDB.
-- [ ] Add a minimal `docker-compose.yml` with just `mongo` + `ingest-api`.
+- [x] Add a MongoDB client to `Ingest.Api`.
+- [x] Implement `GET /ingest?text=...`, storing `{ id, text, createdAt }` in MongoDB.
+- [ ] Add a minimal `docker-compose.yml` with `mongo`, `mongo-express` (basic auth disabled, so it's
+      reachable straight from a browser like everything else here), and `ingest-api`.
 - **Verify:** hit `http://localhost:<port>/ingest?text=hello` in a browser, confirm the document
-  appears in Mongo (e.g. via `mongosh` or Compass).
+  appears in Mongo via the `mongo-express` UI (or `mongosh`/Compass).
 
 ## Phase 2 — Messaging publish (RabbitMQ + Kafka)
 
@@ -27,11 +28,14 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 - [ ] Add a RabbitMQ client to `Ingest.Api`; after a successful Mongo write, publish `TextSubmitted`
       to a fanout/topic exchange when `broker=rabbitmq`.
 - [ ] Add a Kafka client to `Ingest.Api`; publish `TextSubmitted` to a topic when `broker=kafka`.
-- [ ] Add `rabbitmq` and `kafka` (KRaft mode, no ZooKeeper) to `docker-compose.yml` and wire
+- [ ] Add `rabbitmq` (the `-management` image variant, so its browser-based management UI is
+      available for free) and `kafka` (KRaft mode, no ZooKeeper) to `docker-compose.yml` and wire
       `ingest-api` to both.
+- [ ] Add `kafka-ui` (basic auth disabled) to `docker-compose.yml` for browser-based topic
+      inspection — Kafka has no built-in UI the way RabbitMQ does.
 - **Verify:** hit `/ingest?text=hello&broker=rabbitmq`, confirm the message is visible in the
-  RabbitMQ management UI; hit `/ingest?text=hello&broker=kafka`, confirm the message via a Kafka
-  console consumer.
+  RabbitMQ management UI; hit `/ingest?text=hello&broker=kafka`, confirm the message via the
+  `kafka-ui` UI (or a console consumer).
 
 ## Phase 3 — Redis consumer
 
@@ -40,8 +44,10 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 - [ ] Both listeners call the same handler on message received, which writes the text to Redis —
       the handler must not care which broker delivered the message.
 - [ ] Add `redis` and `redis-indexer` to `docker-compose.yml`.
+- [ ] Add `redis-commander` (basic auth disabled) to `docker-compose.yml` for browser-based key
+      inspection — Redis has no built-in UI.
 - **Verify:** hit `/ingest?text=hello&broker=rabbitmq` and separately `broker=kafka`; confirm both
-  values appear in Redis (e.g. via `redis-cli`).
+  values appear in Redis via the `redis-commander` UI (or `redis-cli`).
 
 ## Phase 4 — Elasticsearch consumer
 

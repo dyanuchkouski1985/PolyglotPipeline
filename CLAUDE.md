@@ -18,7 +18,9 @@ templates, no real logic yet). See Plan.md for the step-by-step build order for 
 ## Ground rules
 
 - No authentication anywhere, on any endpoint. Every endpoint is a plain GET so it can be exercised
-  directly from a browser address bar.
+  directly from a browser address bar. This extends to any admin/inspection UI added purely for
+  local-dev convenience (e.g. `mongo-express`, `kafka-ui`, `redis-commander`) — disable its auth
+  too, don't leave it as the one thing behind a login.
 - Build one Plan.md step at a time. The user reviews and commits each step to git themselves to
   study the diff, so do not bundle multiple Plan.md steps into a single change unless asked to.
 - Use the `/do-next` command (`.claude/commands/do-next.md`) to pick up and implement the next
@@ -58,9 +60,13 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 
 ## Infrastructure
 
-- Local dev: `docker-compose.yml` (not yet added) running `mongo`, `rabbitmq`, `kafka` (KRaft mode —
-  no separate ZooKeeper container), `redis`, `elasticsearch`, and the four .NET services
-  (`ingest-api`, `search-api`, `redis-indexer`, `elastic-indexer`).
+- Local dev: `docker-compose.yml` (not yet added) running `mongo`, `mongo-express` (browser-based
+  Mongo inspection, basic auth disabled), `rabbitmq` (`-management` image variant for its built-in
+  browser UI), `kafka` (KRaft mode — no separate ZooKeeper container), `kafka-ui` (basic auth
+  disabled — Kafka has no built-in UI), `redis`, `redis-commander` (basic auth disabled — Redis has
+  no built-in UI either), `elasticsearch` (its `_search` REST endpoint is itself browser-GET-able,
+  so no extra UI container needed), and the four .NET services (`ingest-api`, `search-api`,
+  `redis-indexer`, `elastic-indexer`).
 - Later: the same services deployed to a local Kubernetes cluster (e.g. minikube or kind) — manifests
   to be added under `k8s/` once the docker-compose stage works end-to-end.
 
