@@ -1,8 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS restore
 WORKDIR /src
 COPY src/Ingest.Api/Ingest.Api.csproj Ingest.Api/
+COPY src/Shared.Contracts/Shared.Contracts.csproj Shared.Contracts/
 RUN dotnet restore Ingest.Api/Ingest.Api.csproj
 COPY src/Ingest.Api/ Ingest.Api/
+COPY src/Shared.Contracts/ Shared.Contracts/
 
 FROM restore AS build
 RUN dotnet publish Ingest.Api/Ingest.Api.csproj -c Release -o /app --no-restore

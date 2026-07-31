@@ -28,7 +28,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 - [x] Add a RabbitMQ client to `Ingest.Api`; after a successful Mongo write, publish `TextSubmitted`
       to a fanout/topic exchange when `broker=rabbitmq`.
 - [x] Add a Kafka client to `Ingest.Api`; publish `TextSubmitted` to a topic when `broker=kafka`.
-- [ ] Add `rabbitmq` (the `-management` image variant, so its browser-based management UI is
+- [x] Add `rabbitmq` (the `-management` image variant, so its browser-based management UI is
       available for free) and `kafka` (KRaft mode, no ZooKeeper) to `docker-compose.yml` and wire
       `ingest-api` to both.
 - [ ] Add `kafka-ui` (basic auth disabled) to `docker-compose.yml` for browser-based topic
