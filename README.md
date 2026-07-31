@@ -12,10 +12,10 @@ phase lands.
 
 ## Current state
 
-Phase 0 (scaffolding) and Phase 1 (`Ingest.Api` + MongoDB) are done, and Phase 2 (messaging
-publish) is in progress: `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to
-either RabbitMQ or Kafka, selected per-request. `Search.Api`, `RedisIndexer.Worker`, and
-`ElasticIndexer.Worker` are still empty template shells — nothing consumes these messages yet.
+Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), and Phase 2 (messaging publish) are done:
+`Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to either RabbitMQ or Kafka,
+selected per-request. `Search.Api`, `RedisIndexer.Worker`, and `ElasticIndexer.Worker` are still
+empty template shells — nothing consumes these messages yet.
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
@@ -47,13 +47,14 @@ This starts:
 - `mongo-express` — browser-based Mongo admin UI (no login required): http://localhost:8081
 - `rabbitmq` — AMQP at `localhost:5672`; management UI (guest/guest): http://localhost:15672
 - `kafka` — broker at `localhost:9092` (KRaft mode, no ZooKeeper).
+- `kafka-ui` — browser-based Kafka admin UI (no login required): http://localhost:8082
 - `ingest-api` — http://localhost:8080
 
 Hit `http://localhost:8080/ingest?text=hello&broker=rabbitmq` (or `broker=kafka`) in a browser.
-Check `mongo-express` (database `polyglotpipeline`, collection `texts`) to see the Mongo write, and
-the RabbitMQ management UI's `text-submitted` exchange to see the published message. Kafka doesn't
-have a browser UI yet (that's a later Plan.md task) — inspect it with a console consumer:
-`docker exec -it polyglotpipeline-kafka-1 /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic text-submitted --from-beginning`.
+Check `mongo-express` (database `polyglotpipeline`, collection `texts`) to see the Mongo write, the
+RabbitMQ management UI's `text-submitted` exchange to see the published message, and `kafka-ui`'s
+`text-submitted` topic (under cluster `local`) to see it there too — give `kafka-ui` a few seconds
+after ingesting, since its stats refresh on an interval rather than instantly.
 
 `docker compose down` stops and removes all of this project's containers plus the network (add `-v`
 to also delete the `mongo-data` volume).

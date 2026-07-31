@@ -31,7 +31,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 - [x] Add `rabbitmq` (the `-management` image variant, so its browser-based management UI is
       available for free) and `kafka` (KRaft mode, no ZooKeeper) to `docker-compose.yml` and wire
       `ingest-api` to both.
-- [ ] Add `kafka-ui` (basic auth disabled) to `docker-compose.yml` for browser-based topic
+- [x] Add `kafka-ui` (basic auth disabled) to `docker-compose.yml` for browser-based topic
       inspection — Kafka has no built-in UI the way RabbitMQ does.
 - **Verify:** hit `/ingest?text=hello&broker=rabbitmq`, confirm the message is visible in the
   RabbitMQ management UI; hit `/ingest?text=hello&broker=kafka`, confirm the message via the
