@@ -22,10 +22,10 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 2 — Messaging publish (RabbitMQ + Kafka)
 
-- [ ] Define the `TextSubmitted` message (Id, Text, CreatedAt) in `Shared.Contracts`.
-- [ ] Add a `broker` query parameter to `GET /ingest` (`rabbitmq` or `kafka`) that selects which
+- [x] Define the `TextSubmitted` message (Id, Text, CreatedAt) in `Shared.Contracts`.
+- [x] Add a `broker` query parameter to `GET /ingest` (`rabbitmq` or `kafka`) that selects which
       broker this request's message goes to; reject anything else with a plain 400.
-- [ ] Add a RabbitMQ client to `Ingest.Api`; after a successful Mongo write, publish `TextSubmitted`
+- [x] Add a RabbitMQ client to `Ingest.Api`; after a successful Mongo write, publish `TextSubmitted`
       to a fanout/topic exchange when `broker=rabbitmq`.
 - [ ] Add a Kafka client to `Ingest.Api`; publish `TextSubmitted` to a topic when `broker=kafka`.
 - [ ] Add `rabbitmq` (the `-management` image variant, so its browser-based management UI is

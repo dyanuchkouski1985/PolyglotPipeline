@@ -32,6 +32,9 @@ templates, no real logic yet). See Plan.md for the step-by-step build order for 
 - RabbitMQ and Kafka are peers, not primary/fallback. `Ingest.Api` picks one per request via a
   `broker` query parameter; consumers must treat a message arriving from either broker identically
   — don't special-case handler logic per broker.
+- Don't repeat a string literal that identifies a domain concept (collection name, broker name,
+  queue/topic name, etc.) across more than one place in the same file/type. Define it once as a
+  constant near its natural owner (e.g. `TextDocument.CollectionName`) and reference that instead.
 - Update this file's "Commands" section once real commands exist (solution scaffolded, compose file
   added, etc.) instead of leaving them undocumented.
 
