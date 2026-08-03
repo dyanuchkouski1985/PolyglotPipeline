@@ -32,4 +32,31 @@ app.MapGet("/search/mongo", async (string q, IMongoDatabase mongoDatabase) =>
     return Results.Ok(results);
 });
 
+app.MapGet("/search/redis", async (string q, IConnectionMultiplexer redis) =>
+{
+    var database = redis.GetDatabase();
+    var server = redis.GetServer(redis.GetEndPoints().Single());
+
+    var results = new List<TextDocument>();
+    foreach (var key in server.Keys(pattern: $"{TextSubmitted.RedisKeyPrefix}*"))
+    {
+        var hash = await database.HashGetAllAsync(key);
+        var text = (string?)hash.FirstOrDefault(h => h.Name == nameof(TextSubmitted.Text)).Value;
+        if (text is null || !text.Contains(q, StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        var createdAt = (string)hash.First(h => h.Name == nameof(TextSubmitted.CreatedAt)).Value!;
+        results.Add(new TextDocument
+        {
+            Id = key.ToString()![TextSubmitted.RedisKeyPrefix.Length..],
+            Text = text,
+            CreatedAt = DateTimeOffset.Parse(createdAt)
+        });
+    }
+
+    return Results.Ok(results);
+});
+
 app.Run();

@@ -63,7 +63,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 - [x] Scaffold `Search.Api`.
 - [x] `GET /search/mongo?q=...` — text search against MongoDB.
-- [ ] `GET /search/redis?q=...` — lookup/search against Redis.
+- [x] `GET /search/redis?q=...` — lookup/search against Redis.
 - [ ] `GET /search/elastic?q=...` — full-text search against Elasticsearch.
 - [ ] Add `search-api` to `docker-compose.yml`.
 - **Verify:** ingest a few values, then hit all three search endpoints from a browser and compare
