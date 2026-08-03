@@ -70,10 +70,10 @@ The read side never touches a broker — `Search.Api` reads directly from each s
   basic auth disabled), `rabbitmq` (`-management` image variant for its built-in browser UI), `kafka`
   (KRaft mode — no separate ZooKeeper container), `kafka-ui` (basic auth disabled — Kafka has no
   built-in UI), `redis`, `redis-commander` (basic auth disabled — Redis has no built-in UI either),
-  `ingest-api`, and `redis-indexer` (no container port of its own — it only consumes). Not yet in
-  compose: `elasticsearch` (its `_search` REST endpoint is itself browser-GET-able, so no extra UI
-  container is planned for it), `search-api`, and `elastic-indexer` — these land in later Plan.md
-  phases.
+  `elasticsearch` (security disabled via `xpack.security.enabled=false`; its `_search` REST endpoint
+  is itself browser-GET-able, so no extra UI container is needed), `ingest-api`, `redis-indexer`, and
+  `elastic-indexer` (neither indexer has a container port of its own — they only consume). Not yet in
+  compose: `search-api` — it lands in a later Plan.md phase.
 - `src/Ingest.Api/Dockerfile` has a `debug` build target alongside the normal lean `runtime` target
   (Debug config + `vsdbg` baked in) for attaching VS Code's debugger to the containerized process —
   see README.md's "Debugging Ingest.Api in its container" section. Follow the same pattern (separate
@@ -92,7 +92,7 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 - `dotnet test` — not yet applicable, no test projects exist.
 - `docker compose up -d --build` — build and start the full local stack (see Infrastructure above
   for the service list and ports/UIs). `docker compose down` stops them (add `-v` to also drop the
-  `mongo-data`/`redis-data` volumes).
+  `mongo-data`/`redis-data`/`elastic-data` volumes).
 - `docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build` — same stack, but
   `ingest-api` built from the `debug` Dockerfile target so VS Code can attach (`Docker: Attach to
   Ingest.Api` in `.vscode/launch.json`).

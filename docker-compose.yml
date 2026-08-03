@@ -72,6 +72,16 @@ services:
     depends_on:
       - redis
 
+  elasticsearch:
+    image: elasticsearch:9.4.4
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+
   ingest-api:
     build:
       context: .
@@ -102,6 +112,20 @@ services:
       - kafka
       - redis
 
+  elastic-indexer:
+    build:
+      context: .
+      dockerfile: src/ElasticIndexer.Worker/Dockerfile
+    environment:
+      RabbitMq__ConnectionString: amqp://guest:guest@rabbitmq:5672
+      Kafka__BootstrapServers: kafka:19092
+      Elasticsearch__ConnectionString: http://elasticsearch:9200
+    depends_on:
+      - rabbitmq
+      - kafka
+      - elasticsearch
+
 volumes:
   mongo-data:
   redis-data:
+  elastic-data:

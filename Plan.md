@@ -55,7 +55,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
       `RedisIndexer.Worker` (its own RabbitMQ queue + Kafka topic/consumer group).
 - [x] Both listeners call the same handler on message received, which indexes the document into
       Elasticsearch.
-- [ ] Add `elasticsearch` and `elastic-indexer` to `docker-compose.yml`.
+- [x] Add `elasticsearch` and `elastic-indexer` to `docker-compose.yml`.
 - **Verify:** hit `/ingest?text=hello&broker=rabbitmq` and separately `broker=kafka`; confirm the
   document is indexed for both (e.g. via Elasticsearch's `_search` endpoint).
 

@@ -12,13 +12,11 @@ phase lands.
 
 ## Current state
 
-Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publish), and Phase 3
-(Redis consumer) are done. `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to
-either RabbitMQ or Kafka, selected per-request; `RedisIndexer.Worker` consumes it from whichever
-broker delivered it and writes it to Redis. Phase 4 (Elasticsearch consumer) is in progress:
-`ElasticIndexer.Worker` now indexes every `TextSubmitted` message it receives (from either broker)
-into Elasticsearch — just missing its `docker-compose.yml` entry (and the `elasticsearch` container
-itself). `Search.Api` is still an empty template shell.
+Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publish), Phase 3 (Redis
+consumer), and Phase 4 (Elasticsearch consumer) are done. `Ingest.Api` writes to MongoDB and
+publishes a `TextSubmitted` message to either RabbitMQ or Kafka, selected per-request;
+`RedisIndexer.Worker` and `ElasticIndexer.Worker` each consume it from whichever broker delivered it
+and write it to Redis and Elasticsearch respectively. `Search.Api` is still an empty template shell.
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
@@ -60,17 +58,22 @@ This starts:
 - `redis-indexer` — consumes from both brokers and writes to Redis; no browser UI of its own — that's
   `redis-commander`, above (or `redis-cli`: `docker exec -it polyglotpipeline-redis-1 redis-cli
   HGETALL text:<id>`).
+- `elasticsearch` — REST API at `localhost:9200` (security disabled, so its `_search` endpoint is
+  directly browser-GET-able — no separate UI container).
+- `elastic-indexer` — consumes from both brokers and indexes into Elasticsearch's `texts` index; no
+  UI of its own beyond `elasticsearch` itself, above.
 - `ingest-api` — http://localhost:8080
 
 Hit `http://localhost:8080/ingest?text=hello&broker=rabbitmq` (or `broker=kafka`) in a browser.
 Check `mongo-express` (database `polyglotpipeline`, collection `texts`) to see the Mongo write, the
 RabbitMQ management UI's `text-submitted` exchange to see the published message, `kafka-ui`'s
 `text-submitted` topic (under cluster `local`, give it a few seconds — its stats refresh on an
-interval) to see it there too, and `redis-commander` (or `redis-cli`, above) to confirm
-`redis-indexer` wrote it to Redis — look for a `text:<id>` key.
+interval) to see it there too, `redis-commander` (or `redis-cli`, above) to confirm `redis-indexer`
+wrote it to Redis — look for a `text:<id>` key — and
+`http://localhost:9200/texts/_search?pretty` to confirm `elastic-indexer` indexed it.
 
 `docker compose down` stops and removes all of this project's containers plus the network (add `-v`
-to also delete the `mongo-data`/`redis-data` volumes).
+to also delete the `mongo-data`/`redis-data`/`elastic-data` volumes).
 
 ### Stopping just one container
 
@@ -82,13 +85,13 @@ docker compose rm -s -f mongo-express   # stop (if running) and remove it entire
 ### Inspecting/removing volumes
 
 ```
-docker volume ls --filter name=polyglotpipeline    # this project's volumes (mongo-data, redis-data)
+docker volume ls --filter name=polyglotpipeline    # this project's volumes (mongo-data, redis-data, elastic-data)
 docker volume inspect polyglotpipeline_mongo-data  # details: mountpoint, size, etc.
 docker volume rm polyglotpipeline_mongo-data        # remove it (containers using it must be down first)
 ```
 
-`mongo-data`/`redis-data` persist across `docker compose down`/`up`, so ingested test data (e.g.
-from `?text=hello`) accumulates until you remove the volumes.
+`mongo-data`/`redis-data`/`elastic-data` persist across `docker compose down`/`up`, so ingested test
+data (e.g. from `?text=hello`) accumulates until you remove the volumes.
 
 ## Debugging Ingest.Api in its container (VS Code)
 
