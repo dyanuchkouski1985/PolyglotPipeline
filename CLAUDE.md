@@ -86,9 +86,9 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 - `dotnet build PolyglotPipeline.sln` — build the whole solution (targets net10.0).
 - `dotnet run --project src/Ingest.Api` (or `Search.Api`, `RedisIndexer.Worker`,
   `ElasticIndexer.Worker`) — run a single project. `Ingest.Api`, `RedisIndexer.Worker`, and
-  `ElasticIndexer.Worker` default to `localhost` for Mongo/RabbitMQ/Kafka/Redis (see each project's
-  `appsettings.json`), so those need to be reachable there if running this way instead of via
-  Compose.
+  `ElasticIndexer.Worker` default to `localhost` for Mongo/RabbitMQ/Kafka/Redis/Elasticsearch (see
+  each project's `appsettings.json`), so those need to be reachable there if running this way instead
+  of via Compose.
 - `dotnet test` — not yet applicable, no test projects exist.
 - `docker compose up -d --build` — build and start the full local stack (see Infrastructure above
   for the service list and ports/UIs). `docker compose down` stops them (add `-v` to also drop the

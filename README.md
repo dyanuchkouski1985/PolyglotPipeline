@@ -16,9 +16,9 @@ Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publ
 (Redis consumer) are done. `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to
 either RabbitMQ or Kafka, selected per-request; `RedisIndexer.Worker` consumes it from whichever
 broker delivered it and writes it to Redis. Phase 4 (Elasticsearch consumer) is in progress:
-`ElasticIndexer.Worker` now has the same dual-listener shape (its own RabbitMQ queue + Kafka
-consumer group), but its handler just logs each message for now — no Elasticsearch client wiring or
-`docker-compose.yml` entry yet. `Search.Api` is still an empty template shell.
+`ElasticIndexer.Worker` now indexes every `TextSubmitted` message it receives (from either broker)
+into Elasticsearch — just missing its `docker-compose.yml` entry (and the `elasticsearch` container
+itself). `Search.Api` is still an empty template shell.
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
@@ -26,8 +26,8 @@ consumer group), but its handler just logs each message for now — no Elasticse
 - `src/RedisIndexer.Worker` — two independent listeners (RabbitMQ queue + Kafka topic), both feeding
   one handler that writes `TextSubmitted` to Redis as a hash (`text:{id}` → `Text`, `CreatedAt`).
 - `src/ElasticIndexer.Worker` — two independent listeners (own RabbitMQ queue + Kafka consumer
-  group), both feeding one handler that currently just logs the received `TextSubmitted` message —
-  not wired to Elasticsearch yet.
+  group), both feeding one handler that indexes `TextSubmitted` into the `texts` Elasticsearch index
+  (document ID = message ID).
 - `src/Search.Api` — default ASP.NET Core minimal API template (`GET /` → "Hello World!").
 
 ## Prerequisites
@@ -114,6 +114,6 @@ dotnet run --project src/ElasticIndexer.Worker
 ```
 
 `Ingest.Api`, `RedisIndexer.Worker`, and `ElasticIndexer.Worker` all default to `localhost` for
-Mongo/RabbitMQ/Kafka/Redis (see each project's `appsettings.json`), so those need to be reachable at
-those addresses if you run this way instead of via Compose. `Search.Api` is still just the default
-template — see Plan.md for what's next.
+Mongo/RabbitMQ/Kafka/Redis/Elasticsearch (see each project's `appsettings.json`), so those need to be
+reachable at those addresses if you run this way instead of via Compose. `Search.Api` is still just
+the default template — see Plan.md for what's next.

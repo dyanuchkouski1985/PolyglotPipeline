@@ -1,12 +1,24 @@
+using Elastic.Clients.Elasticsearch;
 using Shared.Contracts;
 
 namespace ElasticIndexer.Worker;
 
-public class TextSubmittedHandler(ILogger<TextSubmittedHandler> logger)
+public class TextSubmittedHandler(ElasticsearchClient elasticsearchClient, ILogger<TextSubmittedHandler> logger)
 {
-    public Task HandleAsync(TextSubmitted message, CancellationToken cancellationToken)
+    public async Task HandleAsync(TextSubmitted message, CancellationToken cancellationToken)
     {
-        logger.LogInformation("Received {Message} {Id}: {Text}", nameof(TextSubmitted), message.Id, message.Text);
-        return Task.CompletedTask;
+        var response = await elasticsearchClient.IndexAsync(
+            message,
+            request => request.Index(TextSubmitted.ElasticIndexName).Id(message.Id),
+            cancellationToken);
+
+        if (response.IsValidResponse)
+        {
+            logger.LogInformation("Indexed {Message} {Id} into Elasticsearch: {Text}", nameof(TextSubmitted), message.Id, message.Text);
+        }
+        else
+        {
+            logger.LogWarning("Failed to index {Message} {Id} into Elasticsearch: {Reason}", nameof(TextSubmitted), message.Id, response.DebugInformation);
+        }
     }
 }

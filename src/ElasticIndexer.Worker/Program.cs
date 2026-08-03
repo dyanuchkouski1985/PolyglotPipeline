@@ -1,4 +1,5 @@
 using Confluent.Kafka;
+using Elastic.Clients.Elasticsearch;
 using ElasticIndexer.Worker;
 using RabbitMQ.Client;
 
@@ -15,6 +16,8 @@ builder.Services.AddSingleton(_ =>
         GroupId = KafkaListener.GroupId,
         AutoOffsetReset = AutoOffsetReset.Earliest
     }).Build());
+builder.Services.AddSingleton(_ =>
+    new ElasticsearchClient(new ElasticsearchClientSettings(new Uri(builder.Configuration["Elasticsearch:ConnectionString"]!))));
 
 builder.Services.AddSingleton<TextSubmittedHandler>();
 builder.Services.AddHostedService<RabbitMqListener>();

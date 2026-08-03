@@ -8,6 +8,8 @@ public record TextSubmitted
 
     public const string RedisKeyPrefix = "text:";
 
+    public const string ElasticIndexName = "texts";
+
     public required string Id { get; init; }
 
     public required string Text { get; init; }

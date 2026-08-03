@@ -28,4 +28,7 @@ Read `CLAUDE.md` and `Plan.md` at the repo root.
    never end the command with the implemented task still shown as unchecked.
 
 End with a short summary: which task you implemented, what files changed, and how the user can
-verify it themselves (including any manual/browser check called out in Plan.md).
+verify it themselves (including any manual/browser check called out in Plan.md). Finish with a
+suggested commit message in a code block — short, imperative, matching this repo's existing commit
+style (check `git log` if unsure) — covering just this task's changes. Do not run `git commit`
+yourself; the message is only a suggestion for the user to use when they commit.
