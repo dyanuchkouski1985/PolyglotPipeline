@@ -51,7 +51,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 4 — Elasticsearch consumer
 
-- [ ] Scaffold `ElasticIndexer.Worker` as a BackgroundService with the same dual-listener shape as
+- [x] Scaffold `ElasticIndexer.Worker` as a BackgroundService with the same dual-listener shape as
       `RedisIndexer.Worker` (its own RabbitMQ queue + Kafka topic/consumer group).
 - [ ] Both listeners call the same handler on message received, which indexes the document into
       Elasticsearch.
