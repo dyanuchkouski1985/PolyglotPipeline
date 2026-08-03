@@ -16,7 +16,9 @@ Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publ
 consumer), and Phase 4 (Elasticsearch consumer) are done. `Ingest.Api` writes to MongoDB and
 publishes a `TextSubmitted` message to either RabbitMQ or Kafka, selected per-request;
 `RedisIndexer.Worker` and `ElasticIndexer.Worker` each consume it from whichever broker delivered it
-and write it to Redis and Elasticsearch respectively. `Search.Api` is still an empty template shell.
+and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is in progress:
+`Search.Api` is now wired up with Mongo, Redis, and Elasticsearch clients, but doesn't have any
+`/search/*` endpoints yet — still just the default `GET /` → "Hello World!".
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
@@ -26,7 +28,7 @@ and write it to Redis and Elasticsearch respectively. `Search.Api` is still an e
 - `src/ElasticIndexer.Worker` — two independent listeners (own RabbitMQ queue + Kafka consumer
   group), both feeding one handler that indexes `TextSubmitted` into the `texts` Elasticsearch index
   (document ID = message ID).
-- `src/Search.Api` — default ASP.NET Core minimal API template (`GET /` → "Hello World!").
+- `src/Search.Api` — Mongo/Redis/Elasticsearch clients registered; no search endpoints yet.
 
 ## Prerequisites
 
@@ -116,7 +118,7 @@ dotnet run --project src/RedisIndexer.Worker
 dotnet run --project src/ElasticIndexer.Worker
 ```
 
-`Ingest.Api`, `RedisIndexer.Worker`, and `ElasticIndexer.Worker` all default to `localhost` for
-Mongo/RabbitMQ/Kafka/Redis/Elasticsearch (see each project's `appsettings.json`), so those need to be
-reachable at those addresses if you run this way instead of via Compose. `Search.Api` is still just
-the default template — see Plan.md for what's next.
+All four default to `localhost` for whichever of Mongo/RabbitMQ/Kafka/Redis/Elasticsearch they use
+(see each project's `appsettings.json`), so those need to be reachable at those addresses if you run
+this way instead of via Compose. `Search.Api` doesn't have any `/search/*` endpoints yet — see
+Plan.md for what's next.

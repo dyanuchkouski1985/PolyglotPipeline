@@ -61,7 +61,7 @@ implement multiple phases in one pass unless explicitly asked. Check items off a
 
 ## Phase 5 — Search.Api
 
-- [ ] Scaffold `Search.Api`.
+- [x] Scaffold `Search.Api`.
 - [ ] `GET /search/mongo?q=...` — text search against MongoDB.
 - [ ] `GET /search/redis?q=...` — lookup/search against Redis.
 - [ ] `GET /search/elastic?q=...` — full-text search against Elasticsearch.
