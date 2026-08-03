@@ -59,4 +59,16 @@ app.MapGet("/search/redis", async (string q, IConnectionMultiplexer redis) =>
     return Results.Ok(results);
 });
 
+app.MapGet("/search/elastic", async (string q, ElasticsearchClient elasticsearchClient) =>
+{
+    var response = await elasticsearchClient.SearchAsync<TextSubmitted>(s => s
+        .Indices(TextSubmitted.ElasticIndexName)
+        .Query(query => query
+            .Match(m => m
+                .Field(f => f.Text)
+                .Query(q))));
+
+    return Results.Ok(response.Documents);
+});
+
 app.Run();

@@ -16,9 +16,9 @@ Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publ
 consumer), and Phase 4 (Elasticsearch consumer) are done. `Ingest.Api` writes to MongoDB and
 publishes a `TextSubmitted` message to either RabbitMQ or Kafka, selected per-request;
 `RedisIndexer.Worker` and `ElasticIndexer.Worker` each consume it from whichever broker delivered it
-and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is in progress:
-`GET /search/mongo?q=...` and `GET /search/redis?q=...` both do a case-insensitive substring search
-(against MongoDB and Redis respectively); `/search/elastic` doesn't exist yet.
+and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is in progress: all
+three `/search/*` endpoints exist now — just missing a `docker-compose.yml` entry for `search-api`
+itself.
 
 - `src/Shared.Contracts` — `TextSubmitted` (the broker message: Id, Text, CreatedAt) and
   `TextDocument` (the Mongo document shape + collection name), shared between `Ingest.Api` (writes
@@ -30,11 +30,14 @@ and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is 
 - `src/ElasticIndexer.Worker` — two independent listeners (own RabbitMQ queue + Kafka consumer
   group), both feeding one handler that indexes `TextSubmitted` into the `texts` Elasticsearch index
   (document ID = message ID).
-- `src/Search.Api` — `GET /search/mongo?q=...` returns every `texts` document whose `Text` contains
-  `q` (case-insensitive). `GET /search/redis?q=...` scans all `text:*` keys and returns the ones whose
-  `Text` hash field contains `q` (case-insensitive) — Redis has no query language of its own, so this
-  is a full keyspace scan rather than an indexed lookup. Elasticsearch client is registered but has no
-  endpoint yet.
+- `src/Search.Api` — three independent search endpoints, one per store:
+  - `GET /search/mongo?q=...` — every `texts` document whose `Text` contains `q` (case-insensitive
+    substring, via a Mongo regex filter).
+  - `GET /search/redis?q=...` — scans all `text:*` keys and returns the ones whose `Text` hash field
+    contains `q` (case-insensitive) — Redis has no query language of its own, so this is a full
+    keyspace scan rather than an indexed lookup.
+  - `GET /search/elastic?q=...` — a real full-text `match` query against the `texts` Elasticsearch
+    index's `text` field — relevance-scored, unlike the other two stores' plain substring checks.
 
 ## Prerequisites
 
@@ -126,8 +129,8 @@ dotnet run --project src/ElasticIndexer.Worker
 
 All four default to `localhost` for whichever of Mongo/RabbitMQ/Kafka/Redis/Elasticsearch they use
 (see each project's `appsettings.json`), so those need to be reachable at those addresses if you run
-this way instead of via Compose. `Search.Api` only has `/search/mongo?q=...` and `/search/redis?q=...`
-so far — see Plan.md for what's next.
+this way instead of via Compose. `Search.Api` now has all three `/search/*` endpoints but isn't in
+`docker-compose.yml` yet — see Plan.md for what's next.
 
 > **Heads up:** if you also have a native (non-Docker) `mongod` running on this machine, it can
 > compete with the Compose `mongo` container for `localhost:27017`, and a natively-run `Ingest.Api`
