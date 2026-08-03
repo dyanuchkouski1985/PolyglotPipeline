@@ -11,9 +11,11 @@ focus stays on the plumbing between technologies rather than business logic. Rab
 deliberately kept as interchangeable, equally-supported brokers (picked per-request) rather than one
 being primary — that's the point of comparison.
 
-The solution (`PolyglotPipeline.sln`) has all five projects scaffolded as empty shells (default
-templates, no real logic yet). See Plan.md for the step-by-step build order for everything else
-(Mongo/RabbitMQ/Kafka/Redis/Elasticsearch wiring, docker-compose, Kubernetes).
+The solution (`PolyglotPipeline.sln`) is built out incrementally per Plan.md's phases; not every
+project has real logic yet (some are still default template shells). Check Plan.md for which phase
+is checked off and README.md's "Current state" section for a plain-English summary of what's
+actually implemented right now — don't infer build status from this file, it isn't kept in lockstep
+with every phase.
 
 ## Ground rules
 
@@ -38,9 +40,10 @@ templates, no real logic yet). See Plan.md for the step-by-step build order for 
 - Update this file's "Commands" section once real commands exist (solution scaffolded, compose file
   added, etc.) instead of leaving them undocumented.
 
-## Architecture (planned)
+## Architecture
 
-Solution: `PolyglotPipeline.sln`, stack: .NET (C#).
+Solution: `PolyglotPipeline.sln`, stack: .NET (C#), targeting net10.0. This describes the target
+shape of each service; see Plan.md/README.md for which pieces are actually wired up yet.
 
 - **Shared.Contracts** — message contracts shared between publisher and consumers (e.g. a
   `TextSubmitted` event: Id, Text, CreatedAt).
@@ -63,13 +66,18 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 
 ## Infrastructure
 
-- Local dev: `docker-compose.yml` (not yet added) running `mongo`, `mongo-express` (browser-based
-  Mongo inspection, basic auth disabled), `rabbitmq` (`-management` image variant for its built-in
-  browser UI), `kafka` (KRaft mode — no separate ZooKeeper container), `kafka-ui` (basic auth
-  disabled — Kafka has no built-in UI), `redis`, `redis-commander` (basic auth disabled — Redis has
-  no built-in UI either), `elasticsearch` (its `_search` REST endpoint is itself browser-GET-able,
-  so no extra UI container needed), and the four .NET services (`ingest-api`, `search-api`,
-  `redis-indexer`, `elastic-indexer`).
+- Local dev: `docker-compose.yml` runs `mongo`, `mongo-express` (browser-based Mongo inspection,
+  basic auth disabled), `rabbitmq` (`-management` image variant for its built-in browser UI), `kafka`
+  (KRaft mode — no separate ZooKeeper container), `kafka-ui` (basic auth disabled — Kafka has no
+  built-in UI), `redis`, `redis-commander` (basic auth disabled — Redis has no built-in UI either),
+  `ingest-api`, and `redis-indexer` (no container port of its own — it only consumes). Not yet in
+  compose: `elasticsearch` (its `_search` REST endpoint is itself browser-GET-able, so no extra UI
+  container is planned for it), `search-api`, and `elastic-indexer` — these land in later Plan.md
+  phases.
+- `src/Ingest.Api/Dockerfile` has a `debug` build target alongside the normal lean `runtime` target
+  (Debug config + `vsdbg` baked in) for attaching VS Code's debugger to the containerized process —
+  see README.md's "Debugging Ingest.Api in its container" section. Follow the same pattern (separate
+  `debug` target, `docker-compose.debug.yml` override) if other services need the same later.
 - Later: the same services deployed to a local Kubernetes cluster (e.g. minikube or kind) — manifests
   to be added under `k8s/` once the docker-compose stage works end-to-end.
 
@@ -77,15 +85,14 @@ The read side never touches a broker — `Search.Api` reads directly from each s
 
 - `dotnet build PolyglotPipeline.sln` — build the whole solution (targets net10.0).
 - `dotnet run --project src/Ingest.Api` (or `Search.Api`, `RedisIndexer.Worker`,
-  `ElasticIndexer.Worker`) — run a single project.
+  `ElasticIndexer.Worker`) — run a single project. `Ingest.Api` and `RedisIndexer.Worker` default to
+  `localhost` for Mongo/RabbitMQ/Kafka/Redis (see each project's `appsettings.json`), so those need
+  to be reachable there if running this way instead of via Compose.
 - `dotnet test` — not yet applicable, no test projects exist.
-- `docker compose up -d --build` — build and start `mongo`, `mongo-express` (http://localhost:8081,
-  no auth), `rabbitmq` (AMQP on 5672, management UI at http://localhost:15672, no auth needed —
-  guest/guest), `kafka` (KRaft, broker on 9092), `kafka-ui` (http://localhost:8082, no auth), `redis`
-  (6379), `redis-indexer` (consumes `TextSubmitted` from both brokers, writes to Redis — no
-  container port of its own), and `ingest-api` (http://localhost:8080, publishes to whichever broker
-  `?broker=` selects). Phase 2 is fully wired end-to-end; Phase 3 (Redis) is functionally done too,
-  minus a browser UI for Redis (`redis-commander`, next Plan.md task). `docker compose down` stops
-  them (add `-v` to also drop the `mongo-data`/`redis-data` volumes). `elasticsearch` and its
-  UI/worker land in a later Plan.md phase.
+- `docker compose up -d --build` — build and start the full local stack (see Infrastructure above
+  for the service list and ports/UIs). `docker compose down` stops them (add `-v` to also drop the
+  `mongo-data`/`redis-data` volumes).
+- `docker compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build` — same stack, but
+  `ingest-api` built from the `debug` Dockerfile target so VS Code can attach (`Docker: Attach to
+  Ingest.Api` in `.vscode/launch.json`).
 - `kubectl` commands — not yet applicable, Kubernetes phase hasn't started.

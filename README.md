@@ -12,11 +12,11 @@ phase lands.
 
 ## Current state
 
-Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), and Phase 2 (messaging publish) are done.
-Phase 3 (Redis consumer) is functionally done too — just missing its browser UI (`redis-commander`,
-next up). `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to either RabbitMQ
-or Kafka, selected per-request; `RedisIndexer.Worker` consumes it from whichever broker delivered it
-and writes it to Redis. `Search.Api` and `ElasticIndexer.Worker` are still empty template shells.
+Phase 0 (scaffolding), Phase 1 (`Ingest.Api` + MongoDB), Phase 2 (messaging publish), and Phase 3
+(Redis consumer) are done. `Ingest.Api` writes to MongoDB and publishes a `TextSubmitted` message to
+either RabbitMQ or Kafka, selected per-request; `RedisIndexer.Worker` consumes it from whichever
+broker delivered it and writes it to Redis. `Search.Api` and `ElasticIndexer.Worker` are still empty
+template shells.
 
 - `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
@@ -51,16 +51,19 @@ This starts:
 - `kafka` — broker at `localhost:9092` (KRaft mode, no ZooKeeper).
 - `kafka-ui` — browser-based Kafka admin UI (no login required): http://localhost:8082
 - `redis` — at `localhost:6379`.
-- `redis-indexer` — consumes from both brokers and writes to Redis; no browser UI of its own yet
-  (that's `redis-commander`, a later Plan.md task) — inspect with `redis-cli` for now:
-  `docker exec -it polyglotpipeline-redis-1 redis-cli HGETALL text:<id>`.
+- `redis-commander` — browser-based Redis key inspection UI (no login required):
+  http://localhost:8083
+- `redis-indexer` — consumes from both brokers and writes to Redis; no browser UI of its own — that's
+  `redis-commander`, above (or `redis-cli`: `docker exec -it polyglotpipeline-redis-1 redis-cli
+  HGETALL text:<id>`).
 - `ingest-api` — http://localhost:8080
 
 Hit `http://localhost:8080/ingest?text=hello&broker=rabbitmq` (or `broker=kafka`) in a browser.
 Check `mongo-express` (database `polyglotpipeline`, collection `texts`) to see the Mongo write, the
 RabbitMQ management UI's `text-submitted` exchange to see the published message, `kafka-ui`'s
 `text-submitted` topic (under cluster `local`, give it a few seconds — its stats refresh on an
-interval) to see it there too, and `redis-cli` (above) to confirm `redis-indexer` wrote it to Redis.
+interval) to see it there too, and `redis-commander` (or `redis-cli`, above) to confirm
+`redis-indexer` wrote it to Redis — look for a `text:<id>` key.
 
 `docker compose down` stops and removes all of this project's containers plus the network (add `-v`
 to also delete the `mongo-data`/`redis-data` volumes).
