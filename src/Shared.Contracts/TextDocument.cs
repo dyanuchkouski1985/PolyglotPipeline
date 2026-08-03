@@ -1,6 +1,6 @@
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Ingest.Api;
+namespace Shared.Contracts;
 
 public record TextDocument
 {

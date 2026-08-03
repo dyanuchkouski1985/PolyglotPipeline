@@ -45,8 +45,10 @@ with every phase.
 Solution: `PolyglotPipeline.sln`, stack: .NET (C#), targeting net10.0. This describes the target
 shape of each service; see Plan.md/README.md for which pieces are actually wired up yet.
 
-- **Shared.Contracts** — message contracts shared between publisher and consumers (e.g. a
-  `TextSubmitted` event: Id, Text, CreatedAt).
+- **Shared.Contracts** — types shared across projects that would otherwise duplicate a domain
+  concept: `TextSubmitted` (the broker message: Id, Text, CreatedAt), and `TextDocument` (the Mongo
+  document shape + `CollectionName`, shared between `Ingest.Api`, which writes it, and `Search.Api`,
+  which reads it back).
 - **Ingest.Api** — ASP.NET Core minimal API. `GET /ingest?text=...&broker=rabbitmq|kafka` writes the
   text to MongoDB, then publishes a `TextSubmitted` message to whichever broker the request asked
   for. `broker` selects the transport only — it does not change what gets stored or published.

@@ -17,10 +17,12 @@ consumer), and Phase 4 (Elasticsearch consumer) are done. `Ingest.Api` writes to
 publishes a `TextSubmitted` message to either RabbitMQ or Kafka, selected per-request;
 `RedisIndexer.Worker` and `ElasticIndexer.Worker` each consume it from whichever broker delivered it
 and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is in progress:
-`Search.Api` is now wired up with Mongo, Redis, and Elasticsearch clients, but doesn't have any
-`/search/*` endpoints yet — still just the default `GET /` → "Hello World!".
+`GET /search/mongo?q=...` now does a case-insensitive substring search against MongoDB; `/search/redis`
+and `/search/elastic` don't exist yet.
 
-- `src/Shared.Contracts` — the shared `TextSubmitted` message contract (Id, Text, CreatedAt).
+- `src/Shared.Contracts` — `TextSubmitted` (the broker message: Id, Text, CreatedAt) and
+  `TextDocument` (the Mongo document shape + collection name), shared between `Ingest.Api` (writes
+  it) and `Search.Api` (reads it back).
 - `src/Ingest.Api` — `GET /ingest?text=...&broker=rabbitmq|kafka` stores `{ id, text, createdAt }`
   in MongoDB, publishes `TextSubmitted` to the selected broker, and returns the stored document.
 - `src/RedisIndexer.Worker` — two independent listeners (RabbitMQ queue + Kafka topic), both feeding
@@ -28,7 +30,8 @@ and write it to Redis and Elasticsearch respectively. Phase 5 (`Search.Api`) is 
 - `src/ElasticIndexer.Worker` — two independent listeners (own RabbitMQ queue + Kafka consumer
   group), both feeding one handler that indexes `TextSubmitted` into the `texts` Elasticsearch index
   (document ID = message ID).
-- `src/Search.Api` — Mongo/Redis/Elasticsearch clients registered; no search endpoints yet.
+- `src/Search.Api` — `GET /search/mongo?q=...` returns every `texts` document whose `Text` contains
+  `q` (case-insensitive). Redis/Elasticsearch clients are registered but have no endpoints yet.
 
 ## Prerequisites
 
@@ -120,5 +123,11 @@ dotnet run --project src/ElasticIndexer.Worker
 
 All four default to `localhost` for whichever of Mongo/RabbitMQ/Kafka/Redis/Elasticsearch they use
 (see each project's `appsettings.json`), so those need to be reachable at those addresses if you run
-this way instead of via Compose. `Search.Api` doesn't have any `/search/*` endpoints yet — see
-Plan.md for what's next.
+this way instead of via Compose. `Search.Api` only has `/search/mongo?q=...` so far — see Plan.md for
+what's next.
+
+> **Heads up:** if you also have a native (non-Docker) `mongod` running on this machine, it can
+> compete with the Compose `mongo` container for `localhost:27017`, and a natively-run `Ingest.Api`
+> or `Search.Api` may silently connect to the wrong one. If `/search/mongo` returns unexpected
+> results when run this way, cross-check what's actually in the Compose `mongo` with
+> `docker exec <mongo-container> mongosh --eval "db.texts.find()"` before assuming a bug.

@@ -1,6 +1,5 @@
 using System.Text.Json;
 using Confluent.Kafka;
-using Ingest.Api;
 using MongoDB.Driver;
 using RabbitMQ.Client;
 using Shared.Contracts;
